@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GMeet Attendance</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0d12;
+      --surface: #111520;
+      --surface2: #181e2e;
+      --border: #1f2a3d;
+      --accent: #3df5a0;
+      --accent2: #3db8f5;
+      --warn: #f5a83d;
+      --danger: #f53d6b;
+      --text: #e8edf5;
+      --muted: #5a6a85;
+      --card-glow: rgba(61, 245, 160, 0.06);
+    }
+
+    body {
+      width: 400px;
+      min-height: 520px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Syne', sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* HEADER */
+    .header {
+      padding: 18px 20px 14px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+    }
+    .header::before {
+      content: '';
+      position: absolute;
+      top: -30px; right: -30px;
+      width: 120px; height: 120px;
+      background: radial-gradient(circle, rgba(61,245,160,0.12), transparent 70%);
+      pointer-events: none;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-icon {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .logo-text {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+      color: var(--text);
+    }
+    .logo-sub {
+      font-size: 10px;
+      font-weight: 400;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 0.5px;
+    }
+
+    .live-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(61, 245, 160, 0.1);
+      border: 1px solid rgba(61, 245, 160, 0.3);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--accent);
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 1px;
+    }
+    .live-dot {
+      width: 6px; height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    .idle-badge {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(90,106,133, 0.1);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 10px;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 1px;
+    }
+
+    /* TABS */
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      padding: 0 16px;
+    }
+    .tab {
+      flex: 1;
+      padding: 10px 0;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--muted);
+      cursor: pointer;
+      text-align: center;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      font-family: 'DM Mono', monospace;
+    }
+    .tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    /* CONTENT AREA */
+    .content { padding: 16px; }
+
+    /* ACTIVE SESSION CARD */
+    .session-card {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 14px;
+      position: relative;
+      overflow: hidden;
+    }
+    .session-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--card-glow);
+      pointer-events: none;
+    }
+    .session-card-title {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .session-meet-code {
+      font-family: 'DM Mono', monospace;
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--accent);
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+    }
+    .session-meta {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+    .session-timer {
+      font-family: 'DM Mono', monospace;
+      font-size: 28px;
+      font-weight: 500;
+      color: var(--text);
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+    .session-timer span {
+      font-size: 13px;
+      color: var(--muted);
+      letter-spacing: 0;
+    }
+    .session-participants-count {
+      text-align: right;
+    }
+    .count-num {
+      font-family: 'DM Mono', monospace;
+      font-size: 28px;
+      font-weight: 500;
+      color: var(--accent2);
+      line-height: 1;
+    }
+    .count-label {
+      font-size: 10px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+    }
+    .session-meta-divider {
+      width: 1px;
+      height: 40px;
+      background: var(--border);
+    }
+
+    /* PARTICIPANTS LIST */
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .participant-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .participant-list::-webkit-scrollbar { width: 3px; }
+    .participant-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .participant-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      transition: border-color 0.2s;
+    }
+    .participant-item:hover { border-color: var(--accent); }
+
+    .participant-avatar {
+      width: 28px; height: 28px;
+      border-radius: 7px;
+      background: linear-gradient(135deg, var(--accent2), var(--accent));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--bg);
+      flex-shrink: 0;
+    }
+    .participant-name {
+      flex: 1;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .participant-time {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .participant-status {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .status-in { background: var(--accent); }
+    .status-out { background: var(--muted); }
+
+    /* HISTORY */
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 360px;
+      overflow-y: auto;
+    }
+    .history-list::-webkit-scrollbar { width: 3px; }
+    .history-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .history-item {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+    .history-item:hover { border-color: var(--accent2); }
+    .history-item-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .history-meet-code {
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--accent2);
+      letter-spacing: 1px;
+    }
+    .history-duration {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--accent);
+      background: rgba(61,245,160,0.08);
+      border: 1px solid rgba(61,245,160,0.2);
+      border-radius: 4px;
+      padding: 2px 7px;
+    }
+    .history-date {
+      font-size: 10px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      margin-bottom: 6px;
+    }
+    .history-stats {
+      display: flex;
+      gap: 14px;
+    }
+    .history-stat {
+      font-size: 10px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+    }
+    .history-stat strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* DETAIL VIEW */
+    .detail-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .back-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 10px;
+      font-size: 11px;
+      color: var(--muted);
+      cursor: pointer;
+      font-family: 'DM Mono', monospace;
+      transition: all 0.2s;
+    }
+    .back-btn:hover { color: var(--text); border-color: var(--accent); }
+    .detail-title {
+      font-family: 'DM Mono', monospace;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--accent2);
+      letter-spacing: 1.5px;
+    }
+
+    /* EMPTY STATE */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+    }
+    .empty-icon {
+      font-size: 40px;
+      margin-bottom: 14px;
+      opacity: 0.5;
+    }
+    .empty-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+    .empty-sub {
+      font-size: 11px;
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      line-height: 1.6;
+    }
+
+    /* ACTIONS */
+    .actions {
+      display: flex;
+      gap: 8px;
+      padding: 12px 16px;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .btn {
+      flex: 1;
+      padding: 8px;
+      border-radius: 7px;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      cursor: pointer;
+      border: none;
+      font-family: 'DM Mono', monospace;
+      transition: all 0.2s;
+    }
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .btn-ghost:hover { border-color: var(--danger); color: var(--danger); }
+    .btn-primary {
+      background: rgba(61,245,160,0.1);
+      border: 1px solid rgba(61,245,160,0.3);
+      color: var(--accent);
+    }
+    .btn-primary:hover { background: rgba(61,245,160,0.18); }
+
+    /* Scroll within views */
+    #tab-live .content, #tab-history .content {
+      max-height: 420px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">
+    <div class="logo-icon">📋</div>
+    <div>
+      <div class="logo-text">Attendance</div>
+      <div class="logo-sub">GMEET TRACKER</div>
+    </div>
+  </div>
+  <div id="status-badge" class="idle-badge">
+    <div style="width:6px;height:6px;background:var(--muted);border-radius:50%;"></div>
+    IDLE
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" data-tab="live" id="tab-btn-live">Live</div>
+  <div class="tab" data-tab="history" id="tab-btn-history">History</div>
+</div>
+
+<!-- LIVE TAB -->
+<div id="tab-live">
+  <div class="content" id="live-content">
+    <div class="empty-state" id="no-meet-msg">
+      <div class="empty-icon">📹</div>
+      <div class="empty-title">No Active Meeting</div>
+      <div class="empty-sub">Join a Google Meet to start<br/>tracking attendance automatically</div>
+    </div>
+    <div id="active-session-view" style="display:none">
+      <div class="session-card">
+        <div class="session-card-title">Current Meeting</div>
+        <div class="session-meet-code" id="current-code">—</div>
+        <div class="session-meta">
+          <div>
+            <div class="session-timer" id="session-timer">00<span>h</span> 00<span>m</span> 00<span>s</span></div>
+          </div>
+          <div class="session-meta-divider"></div>
+          <div class="session-participants-count">
+            <div class="count-num" id="participant-count">0</div>
+            <div class="count-label">IN CALL</div>
+          </div>
+        </div>
+      </div>
+      <div class="section-label">
+        <span>Participants</span>
+        <span id="total-participant-count" style="color:var(--accent2)"></span>
+      </div>
+      <div class="participant-list" id="participant-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- HISTORY TAB -->
+<div id="tab-history" style="display:none">
+  <div class="content" id="history-content">
+    <div id="history-list-view">
+      <div class="section-label">
+        <span>Past Sessions</span>
+        <span id="session-count" style="color:var(--accent2)"></span>
+      </div>
+      <div class="history-list" id="history-list">
+        <div class="empty-state">
+          <div class="empty-icon">🗂️</div>
+          <div class="empty-title">No History Yet</div>
+          <div class="empty-sub">Your past sessions will<br/>appear here</div>
+        </div>
+      </div>
+    </div>
+    <div id="detail-view" style="display:none">
+      <div class="detail-header">
+        <button class="back-btn" id="back-btn">← Back</button>
+        <div class="detail-title" id="detail-title">—</div>
+      </div>
+      <div class="section-label"><span>Participants</span></div>
+      <div class="participant-list" id="detail-participant-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ACTIONS -->
+<div class="actions">
+  <button class="btn btn-ghost" id="clear-data-btn">Clear Data</button>
+  <button class="btn btn-primary" id="export-csv-btn">Export CSV</button>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>
