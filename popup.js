@@ -4,6 +4,11 @@ let currentTab = 'live';
 let activeSession = null;
 let timerInterval = null;
 let allSessions = [];
+let liveRoster = null;
+let minutesSessionId = null;
+let minutesRoster = null;
+let minutesData = null;
+let minutesTranscript = [];
 
 // ─── Init ───────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
@@ -11,19 +16,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Tab switching
     const tabLiveBtn = document.getElementById('tab-btn-live');
     const tabHistoryBtn = document.getElementById('tab-btn-history');
+    const tabMinutesBtn = document.getElementById('tab-btn-minutes');
     if (tabLiveBtn) tabLiveBtn.addEventListener('click', () => switchTab('live'));
     if (tabHistoryBtn) tabHistoryBtn.addEventListener('click', () => switchTab('history'));
-    
+    if (tabMinutesBtn) tabMinutesBtn.addEventListener('click', () => switchTab('minutes'));
+
     // Back button in detail view
     const backBtn = document.getElementById('back-btn');
     if (backBtn) backBtn.addEventListener('click', showHistoryList);
-    
+
     // Actions
     const clearBtn = document.getElementById('clear-data-btn');
     const exportBtn = document.getElementById('export-csv-btn');
+    const optionsBtn = document.getElementById('options-btn');
     if (clearBtn) clearBtn.addEventListener('click', clearData);
     if (exportBtn) exportBtn.addEventListener('click', exportCSV);
-    
+    if (optionsBtn) optionsBtn.addEventListener('click', () => chrome.runtime.openOptionsPage());
+
+    // Minutes tab controls
+    const sessionSelect = document.getElementById('minutes-session-select');
+    const generateBtn = document.getElementById('generate-minutes-btn');
+    const saveMinutesBtn = document.getElementById('save-minutes-btn');
+    const sendMinutesBtn = document.getElementById('send-minutes-btn');
+    if (sessionSelect) sessionSelect.addEventListener('change', (e) => loadMinutesForSession(e.target.value));
+    if (generateBtn) generateBtn.addEventListener('click', () => generateMinutes(false));
+    if (saveMinutesBtn) saveMinutesBtn.addEventListener('click', saveMinutesEdits);
+    if (sendMinutesBtn) sendMinutesBtn.addEventListener('click', sendMinutes);
+
     // Delegate history item clicks
     const historyList = document.getElementById('history-list');
     if (historyList) {
@@ -110,6 +129,87 @@ function showActiveSession() {
 
   // Participants
   renderParticipants();
+  loadLiveAttendance();
+}
+
+// ─── Live roster attendance ───────────────────────────────────────────────
+async function loadLiveAttendance() {
+  if (!activeSession) return;
+
+  const rosterRes = await sendMessage({ type: 'GET_ROSTER_FOR_MEET', data: { meetCode: activeSession.meetCode } });
+  liveRoster = rosterRes?.roster || null;
+
+  const label = document.getElementById('roster-name-label');
+  const grid = document.getElementById('attendance-grid');
+  if (!liveRoster) {
+    if (label) label.textContent = 'no roster bound';
+    if (grid) grid.innerHTML = `<div style="color:var(--muted);font-size:11px;padding:6px 0;">No roster is bound to this meet code. Set one up in Rosters.</div>`;
+    return;
+  }
+  if (label) label.textContent = liveRoster.name;
+
+  const reportRes = await sendMessage({ type: 'GET_REPORT', data: { sessionId: activeSession.id } });
+  const attendance = reportRes?.report?.attendance;
+  renderAttendanceGrid(grid, attendance, liveRoster);
+}
+
+function renderAttendanceGrid(container, attendance, roster) {
+  if (!container) return;
+  if (!attendance) {
+    container.innerHTML = `<div style="color:var(--muted);font-size:11px;padding:6px 0;">No attendance data yet.</div>`;
+    return;
+  }
+
+  const rows = [];
+  const addRows = (list, badgeClass, label) => {
+    (list || []).forEach((entry) => {
+      const time = entry.timeInCallMs != null ? formatTime(Math.floor(entry.timeInCallMs / 1000)) : '—';
+      rows.push(`
+        <div class="attendance-row">
+          <div class="attendance-name">${escHtml(entry.name)}</div>
+          <div class="attendance-time">${time}</div>
+          <div class="attendance-badge ${badgeClass}">${label}</div>
+        </div>
+      `);
+    });
+  };
+
+  addRows(attendance.present, 'badge-present', 'Present');
+  addRows(attendance.partial, 'badge-partial', 'Partial');
+  addRows(attendance.absent, 'badge-absent', 'Absent');
+
+  (attendance.unknown || []).forEach((entry, idx) => {
+    const time = formatTime(Math.floor((entry.timeInCallMs || 0) / 1000));
+    const options = (roster.members || [])
+      .map((m, i) => `<option value="${i}">${escHtml(m.name)}</option>`)
+      .join('');
+    rows.push(`
+      <div class="attendance-row">
+        <div class="attendance-name">${escHtml(entry.name)}</div>
+        <div class="attendance-time">${time}</div>
+        <div class="attendance-badge badge-unknown">Unknown</div>
+        <select class="assign-select" data-unknown-name="${escAttr(entry.name)}">
+          <option value="">Assign to…</option>
+          ${options}
+        </select>
+      </div>
+    `);
+  });
+
+  container.innerHTML = rows.join('') || `<div style="color:var(--muted);font-size:11px;padding:6px 0;">No attendance data yet.</div>`;
+
+  container.querySelectorAll('.assign-select').forEach((select) => {
+    select.addEventListener('change', async (e) => {
+      const memberIndex = Number(e.target.value);
+      if (Number.isNaN(memberIndex)) return;
+      const name = e.target.getAttribute('data-unknown-name');
+      await sendMessage({
+        type: 'ASSIGN_ALIAS',
+        data: { rosterId: roster._id, memberIndex, alias: name }
+      });
+      loadLiveAttendance();
+    });
+  });
 }
 
 function showNoMeet() {
@@ -262,7 +362,8 @@ function switchTab(tab) {
     
     document.getElementById('tab-live').style.display = tab === 'live' ? 'block' : 'none';
     document.getElementById('tab-history').style.display = tab === 'history' ? 'block' : 'none';
-    
+    document.getElementById('tab-minutes').style.display = tab === 'minutes' ? 'block' : 'none';
+
     if (tab === 'history') {
       loadSessions()
         .then(() => renderHistoryList())
@@ -271,6 +372,10 @@ function switchTab(tab) {
           console.error('[Popup] Error switching to history tab:', error);
           showHistoryList(); // Still show the view even if there's an error
         });
+    }
+
+    if (tab === 'minutes') {
+      initMinutesTab().catch((error) => console.error('[Popup] Error loading minutes tab:', error));
     }
     console.log('[Popup] Switched to tab:', tab);
   } catch (error) {
@@ -356,6 +461,186 @@ function getInitials(name) {
 function escHtml(str) {
   if (typeof str !== 'string') return '';
   return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function escAttr(str) {
+  return escHtml(str).replace(/"/g, '&quot;');
+}
+
+// ─── Minutes tab ──────────────────────────────────────────────────────────
+
+async function initMinutesTab() {
+  await loadSessions();
+  const select = document.getElementById('minutes-session-select');
+  if (!select) return;
+
+  const candidates = [];
+  if (activeSession) candidates.push({ id: activeSession.id, label: `${(activeSession.meetCode || 'live').toUpperCase()} (in progress)` });
+  allSessions.filter((s) => s.leaveTime).forEach((s) => {
+    candidates.push({ id: s.id, label: `${(s.meetCode || 'unknown').toUpperCase()} — ${new Date(s.joinTime).toLocaleDateString()}` });
+  });
+
+  if (candidates.length === 0) {
+    select.innerHTML = '';
+    document.getElementById('minutes-empty').style.display = 'block';
+    document.getElementById('minutes-body').style.display = 'none';
+    return;
+  }
+
+  select.innerHTML = candidates.map((c) => `<option value="${c.id}">${escHtml(c.label)}</option>`).join('');
+  const toSelect = minutesSessionId && candidates.some((c) => c.id === minutesSessionId)
+    ? minutesSessionId
+    : candidates[0].id;
+  select.value = toSelect;
+  await loadMinutesForSession(toSelect);
+}
+
+async function loadMinutesForSession(sessionId) {
+  minutesSessionId = sessionId;
+  document.getElementById('minutes-empty').style.display = 'none';
+  document.getElementById('minutes-body').style.display = 'block';
+
+  const reportRes = await sendMessage({ type: 'GET_REPORT', data: { sessionId } });
+  const report = reportRes?.report;
+
+  minutesRoster = report?.roster || null;
+  renderAttendanceGrid(document.getElementById('minutes-attendance-grid'), report?.attendance, minutesRoster);
+
+  minutesData = report?.minutes || null;
+  minutesTranscript = report?.transcript || [];
+  renderMinutesEditor();
+  renderTranscript();
+}
+
+function renderTranscript() {
+  const container = document.getElementById('transcript-list');
+  const count = document.getElementById('transcript-count');
+  if (!container) return;
+
+  if (count) count.textContent = minutesTranscript.length ? `${minutesTranscript.length} lines` : '';
+
+  if (!minutesTranscript.length) {
+    container.innerHTML = `<div class="transcript-empty">No transcript captured for this meeting.</div>`;
+    return;
+  }
+
+  container.innerHTML = minutesTranscript.map((line) => `
+    <div class="transcript-line">
+      <span class="transcript-speaker">${escHtml(line.speaker || 'Unknown')}</span>
+      <span class="transcript-text">${escHtml(line.text || '')}</span>
+    </div>
+  `).join('');
+}
+
+function renderMinutesEditor() {
+  const editor = document.getElementById('minutes-editor');
+  const status = document.getElementById('minutes-status');
+  const saveBtn = document.getElementById('save-minutes-btn');
+  const sendBtn = document.getElementById('send-minutes-btn');
+  const generateBtn = document.getElementById('generate-minutes-btn');
+
+  if (!minutesData) {
+    editor.style.display = 'none';
+    saveBtn.style.display = 'none';
+    sendBtn.style.display = 'none';
+    status.textContent = 'not generated';
+    status.style.color = 'var(--accent2)';
+    generateBtn.textContent = 'Generate';
+    return;
+  }
+
+  editor.style.display = 'block';
+  saveBtn.style.display = 'inline-block';
+  sendBtn.style.display = 'inline-block';
+  status.textContent = minutesData.editedAt ? 'edited' : (minutesData.disabled ? 'generation disabled — see transcript' : 'generated');
+  status.style.color = minutesData.disabled ? 'var(--warn)' : 'var(--accent2)';
+  generateBtn.textContent = 'Regenerate';
+
+  document.getElementById('minutes-summary').value = minutesData.summary || '';
+  document.getElementById('minutes-decisions').value = (minutesData.decisions || []).join('\n');
+  document.getElementById('minutes-actions').value = (minutesData.actionItems || [])
+    .map((a) => `${a.owner} | ${a.task} | ${a.dueDate || ''}`).join('\n');
+  document.getElementById('minutes-questions').value = (minutesData.openQuestions || []).join('\n');
+}
+
+function readMinutesFromEditor() {
+  const decisions = document.getElementById('minutes-decisions').value.split('\n').map((s) => s.trim()).filter(Boolean);
+  const openQuestions = document.getElementById('minutes-questions').value.split('\n').map((s) => s.trim()).filter(Boolean);
+  const actionItems = document.getElementById('minutes-actions').value.split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [owner, task, dueDate] = line.split('|').map((s) => (s || '').trim());
+      return { owner: owner || 'Unassigned', task: task || '', dueDate: dueDate || null };
+    });
+
+  return {
+    summary: document.getElementById('minutes-summary').value.trim(),
+    topics: minutesData?.topics || [],
+    decisions,
+    actionItems,
+    openQuestions
+  };
+}
+
+async function generateMinutes(regenerate) {
+  if (!minutesSessionId) return;
+  const btn = document.getElementById('generate-minutes-btn');
+  btn.disabled = true;
+  btn.textContent = 'Generating…';
+
+  try {
+    const res = await sendMessage({ type: 'GENERATE_MINUTES', data: { sessionId: minutesSessionId, regenerate: !!regenerate || !!minutesData } });
+    if (res?.status === 'ok') {
+      minutesData = res.minutes;
+      renderMinutesEditor();
+    } else {
+      alert(`Error generating minutes: ${res?.error || 'unknown error'}`);
+    }
+  } finally {
+    btn.disabled = false;
+    renderMinutesEditor();
+  }
+}
+
+async function saveMinutesEdits() {
+  if (!minutesSessionId) return;
+  const minutes = readMinutesFromEditor();
+  const res = await sendMessage({ type: 'SAVE_MINUTES', data: { sessionId: minutesSessionId, minutes } });
+  if (res?.status === 'ok') {
+    minutesData = res.minutes;
+    renderMinutesEditor();
+  } else {
+    alert(`Error saving minutes: ${res?.error || 'unknown error'}`);
+  }
+}
+
+async function sendMinutes() {
+  if (!minutesSessionId) return;
+  if (!minutesRoster || (minutesRoster.members || []).filter((m) => m.email).length === 0) {
+    alert('This session has no roster with member emails bound to it.');
+    return;
+  }
+  if (!confirm(`Send minutes to ${minutesRoster.members.filter((m) => m.email).length} recipient(s)?`)) return;
+
+  // Persist any unsaved edits first so the sent email matches what's on screen.
+  await saveMinutesEdits();
+
+  const btn = document.getElementById('send-minutes-btn');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+
+  try {
+    const res = await sendMessage({ type: 'SEND_MINUTES', data: { sessionId: minutesSessionId } });
+    if (res?.status === 'ok') {
+      alert(`Sent to: ${res.recipients.join(', ')}`);
+    } else {
+      alert(`Error sending: ${res?.error || 'unknown error'}`);
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Send to roster';
+  }
 }
 
 function sendMessage(msg) {

@@ -9,17 +9,17 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg: #0a0d12;
-      --surface: #111520;
-      --surface2: #181e2e;
-      --border: #1f2a3d;
-      --accent: #3df5a0;
-      --accent2: #3db8f5;
-      --warn: #f5a83d;
-      --danger: #f53d6b;
-      --text: #e8edf5;
-      --muted: #5a6a85;
-      --card-glow: rgba(61, 245, 160, 0.06);
+      --bg: #f5f7fb;
+      --surface: #ffffff;
+      --surface2: #f0f3f9;
+      --border: #dde3ee;
+      --accent: #0ea968;
+      --accent2: #1a7fd6;
+      --warn: #b9740a;
+      --danger: #d6335a;
+      --text: #1c2433;
+      --muted: #6b7688;
+      --card-glow: rgba(14, 169, 104, 0.06);
     }
 
     body {
@@ -47,7 +47,7 @@
       position: absolute;
       top: -30px; right: -30px;
       width: 120px; height: 120px;
-      background: radial-gradient(circle, rgba(61,245,160,0.12), transparent 70%);
+      background: radial-gradient(circle, rgba(14, 169, 104,0.12), transparent 70%);
       pointer-events: none;
     }
 
@@ -81,8 +81,8 @@
       display: flex;
       align-items: center;
       gap: 5px;
-      background: rgba(61, 245, 160, 0.1);
-      border: 1px solid rgba(61, 245, 160, 0.3);
+      background: rgba(14, 169, 104, 0.1);
+      border: 1px solid rgba(14, 169, 104, 0.3);
       border-radius: 20px;
       padding: 4px 10px;
       font-size: 10px;
@@ -106,7 +106,7 @@
       display: flex;
       align-items: center;
       gap: 5px;
-      background: rgba(90,106,133, 0.1);
+      background: rgba(107, 118, 136, 0.1);
       border: 1px solid var(--border);
       border-radius: 20px;
       padding: 4px 10px;
@@ -261,7 +261,7 @@
       display: flex; align-items: center; justify-content: center;
       font-size: 11px;
       font-weight: 700;
-      color: var(--bg);
+      color: #ffffff;
       flex-shrink: 0;
     }
     .participant-name {
@@ -323,8 +323,8 @@
       font-family: 'DM Mono', monospace;
       font-size: 11px;
       color: var(--accent);
-      background: rgba(61,245,160,0.08);
-      border: 1px solid rgba(61,245,160,0.2);
+      background: rgba(14, 169, 104,0.08);
+      border: 1px solid rgba(14, 169, 104,0.2);
       border-radius: 4px;
       padding: 2px 7px;
     }
@@ -426,16 +426,81 @@
     }
     .btn-ghost:hover { border-color: var(--danger); color: var(--danger); }
     .btn-primary {
-      background: rgba(61,245,160,0.1);
-      border: 1px solid rgba(61,245,160,0.3);
+      background: rgba(14, 169, 104,0.1);
+      border: 1px solid rgba(14, 169, 104,0.3);
       color: var(--accent);
     }
-    .btn-primary:hover { background: rgba(61,245,160,0.18); }
+    .btn-primary:hover { background: rgba(14, 169, 104,0.18); }
 
     /* Scroll within views */
-    #tab-live .content, #tab-history .content {
+    #tab-live .content, #tab-history .content, #tab-minutes .content {
       max-height: 420px;
       overflow-y: auto;
+    }
+
+    /* ATTENDANCE GRID */
+    .attendance-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      margin-bottom: 5px;
+      font-size: 11px;
+    }
+    .attendance-name { flex: 1; font-weight: 600; }
+    .attendance-time { font-family: 'DM Mono', monospace; color: var(--muted); }
+    .attendance-badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+    .badge-present { background: rgba(14, 169, 104,0.12); color: var(--accent); }
+    .badge-partial { background: rgba(185, 116, 10,0.12); color: var(--warn); }
+    .badge-absent { background: rgba(214, 51, 90,0.12); color: var(--danger); }
+    .badge-unknown { background: rgba(107, 118, 136,0.15); color: var(--muted); }
+    /* TRANSCRIPT */
+    .transcript-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 260px;
+      overflow-y: auto;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 12px;
+    }
+    .transcript-list::-webkit-scrollbar { width: 3px; }
+    .transcript-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    .transcript-line { font-size: 11px; line-height: 1.5; }
+    .transcript-speaker {
+      font-family: 'DM Mono', monospace;
+      font-weight: 700;
+      color: var(--accent2);
+      margin-right: 6px;
+    }
+    .transcript-text { color: var(--text); }
+    .transcript-empty {
+      color: var(--muted);
+      font-size: 11px;
+      font-family: 'DM Mono', monospace;
+      text-align: center;
+      padding: 10px 0;
+    }
+    .assign-select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 4px;
+      font-size: 10px;
+      padding: 2px 4px;
     }
   </style>
 </head>
@@ -460,6 +525,7 @@
 <div class="tabs">
   <div class="tab active" data-tab="live" id="tab-btn-live">Live</div>
   <div class="tab" data-tab="history" id="tab-btn-history">History</div>
+  <div class="tab" data-tab="minutes" id="tab-btn-minutes">Minutes</div>
 </div>
 
 <!-- LIVE TAB -->
@@ -490,6 +556,12 @@
         <span id="total-participant-count" style="color:var(--accent2)"></span>
       </div>
       <div class="participant-list" id="participant-list"></div>
+
+      <div class="section-label" style="margin-top:14px;">
+        <span>Roster attendance</span>
+        <span id="roster-name-label" style="color:var(--accent2)"></span>
+      </div>
+      <div id="attendance-grid"></div>
     </div>
   </div>
 </div>
@@ -521,9 +593,61 @@
   </div>
 </div>
 
+<!-- MINUTES TAB -->
+<div id="tab-minutes" style="display:none">
+  <div class="content" id="minutes-content">
+    <div class="section-label">
+      <span>Session</span>
+    </div>
+    <select id="minutes-session-select" style="width:100%;margin-bottom:12px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:6px;font-family:'DM Mono',monospace;font-size:11px;"></select>
+
+    <div id="minutes-empty" class="empty-state">
+      <div class="empty-icon">📝</div>
+      <div class="empty-title">No session selected</div>
+      <div class="empty-sub">Join or complete a meeting first</div>
+    </div>
+
+    <div id="minutes-body" style="display:none;">
+      <div class="section-label"><span>Attendance</span></div>
+      <div id="minutes-attendance-grid"></div>
+
+      <div class="section-label" style="margin-top:14px;">
+        <span>Minutes</span>
+        <span id="minutes-status" style="color:var(--accent2)"></span>
+      </div>
+      <div id="minutes-editor" style="display:none;">
+        <label style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">Summary</label>
+        <textarea id="minutes-summary" rows="3" style="width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px;font-size:11px;margin:4px 0 10px;"></textarea>
+
+        <label style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">Decisions (one per line)</label>
+        <textarea id="minutes-decisions" rows="2" style="width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px;font-size:11px;margin:4px 0 10px;"></textarea>
+
+        <label style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">Action items (Owner | Task | Due date, one per line)</label>
+        <textarea id="minutes-actions" rows="3" style="width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px;font-size:11px;margin:4px 0 10px;"></textarea>
+
+        <label style="font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;">Open questions (one per line)</label>
+        <textarea id="minutes-questions" rows="2" style="width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:8px;font-size:11px;margin:4px 0 10px;"></textarea>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn btn-primary" id="generate-minutes-btn">Generate</button>
+        <button class="btn btn-ghost" id="save-minutes-btn" style="display:none;">Save edits</button>
+        <button class="btn btn-primary" id="send-minutes-btn" style="display:none;">Send to roster</button>
+      </div>
+
+      <div class="section-label" style="margin-top:16px;">
+        <span>Transcript</span>
+        <span id="transcript-count" style="color:var(--accent2)"></span>
+      </div>
+      <div class="transcript-list" id="transcript-list"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ACTIONS -->
 <div class="actions">
   <button class="btn btn-ghost" id="clear-data-btn">Clear Data</button>
+  <button class="btn btn-ghost" id="options-btn">Rosters</button>
   <button class="btn btn-primary" id="export-csv-btn">Export CSV</button>
 </div>
 

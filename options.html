@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GMeet Attendance — Settings</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0d12;
+      --surface: #111520;
+      --surface2: #181e2e;
+      --border: #1f2a3d;
+      --accent: #3df5a0;
+      --accent2: #3db8f5;
+      --danger: #f53d6b;
+      --text: #e8edf5;
+      --muted: #5a6a85;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 32px 24px 80px;
+    }
+
+    h1 { font-size: 20px; margin-bottom: 4px; }
+    .sub { color: var(--muted); font-size: 13px; margin-bottom: 28px; }
+    h2 { font-size: 15px; margin: 32px 0 12px; color: var(--accent2); }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-bottom: 12px;
+    }
+
+    label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+    input[type="text"], input[type="email"], input[type="number"], textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 7px 10px;
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+    input[type="checkbox"] { margin-right: 6px; }
+
+    .row { display: flex; gap: 10px; }
+    .row > * { flex: 1; }
+
+    button {
+      background: rgba(61,245,160,0.1);
+      border: 1px solid rgba(61,245,160,0.3);
+      color: var(--accent);
+      border-radius: 6px;
+      padding: 7px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: rgba(61,245,160,0.18); }
+    button.ghost { background: transparent; border-color: var(--border); color: var(--muted); }
+    button.ghost:hover { border-color: var(--danger); color: var(--danger); }
+    button.small { padding: 4px 9px; font-size: 11px; }
+
+    .member-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr auto;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .member-row input { margin-bottom: 0; }
+
+    .roster-list-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 8px;
+      cursor: pointer;
+    }
+    .roster-list-item:hover { border-color: var(--accent2); }
+    .roster-list-item .meta { font-size: 11px; color: var(--muted); }
+
+    .toast {
+      position: fixed; bottom: 20px; right: 20px;
+      background: var(--surface2); border: 1px solid var(--accent);
+      color: var(--text); padding: 10px 16px; border-radius: 8px;
+      font-size: 12px; display: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>GMeet Attendance — Settings</h1>
+  <div class="sub">Manage rosters and capture preferences.</div>
+
+  <h2>Capture settings</h2>
+  <div class="card">
+    <label><input type="checkbox" id="autoEnableCaptions" /> Automatically turn on live captions when a meeting starts</label>
+    <label><input type="checkbox" id="showConsentBanner" /> Show a "this meeting is being transcribed" banner to participants</label>
+    <button id="saveSettingsBtn">Save settings</button>
+  </div>
+
+  <h2>Rosters</h2>
+  <div class="card">
+    <div id="rosterList"></div>
+    <button id="newRosterBtn">+ New roster</button>
+  </div>
+
+  <div class="card" id="rosterEditor" style="display:none;">
+    <label>Roster name</label>
+    <input type="text" id="rosterName" placeholder="e.g. Weekly Standup" />
+
+    <label>Meet codes bound to this roster (comma-separated, e.g. abc-defg-hij)</label>
+    <input type="text" id="rosterMeetCodes" placeholder="abc-defg-hij, xyz-uvwx-yzt" />
+
+    <div class="row">
+      <div>
+        <label>Attendance threshold (% of meeting duration to count as "present")</label>
+        <input type="number" id="rosterThreshold" min="0" max="100" value="50" />
+      </div>
+      <div>
+        <label><input type="checkbox" id="rosterAutoSend" /> Auto-send minutes after every meeting</label>
+      </div>
+    </div>
+
+    <label>Members</label>
+    <div id="memberRows"></div>
+    <button class="small" id="addMemberBtn">+ Add member</button>
+
+    <div style="margin-top:16px; display:flex; gap:8px;">
+      <button id="saveRosterBtn">Save roster</button>
+      <button class="ghost" id="deleteRosterBtn" style="display:none;">Delete roster</button>
+      <button class="ghost" id="cancelEditBtn">Cancel</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="options.js"></script>
+</body>
+</html>

@@ -70,7 +70,7 @@
 
   function getParticipants() {
     const participants = new Set();
-    
+
     // 1. Primary: Use data attributes that are specifically for participants
     const roots = document.querySelectorAll(participantRootSelectors.join(','));
     roots.forEach((root) => {
@@ -160,7 +160,7 @@
     }
 
     const lower = name.toLowerCase();
-    
+
     // Blocked list check
     if (blockedNames.has(lower)) {
       return '';
@@ -188,10 +188,10 @@
     const uiKeywords = [
       'options', 'settings', 'effects', 'backgrounds', 'presenting',
       'present now', 'details', 'controls', 'people', 'chat',
-      'activities', 'microphone', 'camera', 'unmute', 'actions', 'your ', 
+      'activities', 'microphone', 'camera', 'unmute', 'actions', 'your ',
       'you can\'t', 'hand', 'pin', 'remove', 'everyone', 'indicator'
     ];
-    
+
     if (uiKeywords.some(kw => lower.includes(kw))) {
       return '';
     }
